@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" integrity="sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <title>Tres en raya </title>
+</head>
+<body class="bg-dark text-white">
+    <h1 class="text-center my-4">Juego tres en raya <span class="text-warning" id="jugadorActual"></span></h1>
+    <h3 class="text-center text-white">Turno jugador X <span class="text-success" id="jugadorX"><i class="fas fa-arrow-left"></i></span></h3>
+    <h3 class="text-center text-white">Turno Jugador O <span class="text-success" id="jugadorO"><i class="fas fa-arrow-left"></i></span></h3>
+    <div class="d-flex justify-content-center">
+        <main class="col-12 col-md-8 col-xl-6 text-center">
+            <div class="row" style="height: 22vh;">
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="0_0" type="button"></button>
+                </div>
+                <div class="col-4 d-grid h3">
+                    <button class="btn btn-danger casilla" id="0_1" type="button"></button>
+                </div>
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="0_2" type="button"></button>
+                </div>
+            </div>
+    
+            <div class="row mt-4" style="height: 22vh;">
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="1_0" type="button"></button>
+                </div>
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="1_1" type="button"></button>
+                </div>
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="1_2" type="button"></button>
+                </div>
+            </div>
+    
+            <div class="row mt-4" style="height: 22vh;">
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="2_0" type="button"></button>
+                </div>
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="2_1" type="button"></button>
+                </div>
+                <div class="col-4 d-grid">
+                    <button class="btn btn-danger casilla" id="2_2" type="button"></button>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="button" class="btn btn-primary" id="btnReiniciar"><i class="fas fa-power-off"></i> Reiniciar</button>
+            </div>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const botones = document.getElementsByClassName('casilla');
+        for (const boton of botones) {
+            boton.addEventListener('click', (e) => {
+                console.log('Coordenadas enviadas '+e.target.id);
+                socket.emit('coordenadas',e.target.id+'_'+document.querySelector('#jugadorActual').innerHTML);
+                // document.getElementById(e.target.id).disabled = true;
+            });
+        }
+
+        let nombreUsuario  = 'X';
+        socket.on('connect', () => {
+            socket.emit('nuevoUsuario', nombreUsuario);
+        });
+
+        socket.on('Jugador', (valor) => {
+            document.querySelector('#jugadorActual').innerHTML = valor;
+            // alert(mensaje);
+            if(valor === 'X'){
+                // document.querySelector('#jugadorActual').innerHTML = valor;
+                document.getElementById('jugadorX').classList.remove("d-none");
+                document.getElementById('jugadorO').classList.add("d-none");
+            }else{
+                document.getElementById('jugadorO').classList.remove("d-none");
+                document.getElementById('jugadorX').classList.add("d-none");
+            }
+        });
+
+        socket.on('jugadas', (game)=>{
+            console.log(game);
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    let elemento = game[i][j];
+                    console.log(elemento);
+                    if(elemento != '-'){
+                        document.getElementById(i+'_'+j).innerHTML = elemento;
+                        document.getElementById(i+'_'+j).disabled = true;
+                    }
+                }
+                
+            }
+        });
+
+        socket.on('respuestaReinicio', (valor)=>{
+            // console.log(game);
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    document.getElementById(i+'_'+j).innerHTML = '';
+                    document.getElementById(i+'_'+j).disabled = false;
+                }
+                
+            }
+        });
+
+        socket.on('jugada', (value)=>{
+            // console.log('Jugadas recibidas '+value);
+            let jugada = value.split('_');
+            console.log(jugada);
+            if(jugada.length > 1 ){
+                document.getElementById(jugada[0]+'_'+jugada[1]).innerHTML = jugada[2];
+                document.getElementById(jugada[0]+'_'+jugada[1]).disabled = true;
+                if(jugada[2] != 'X'){
+                    document.getElementById('jugadorX').classList.remove("d-none");
+                    document.getElementById('jugadorO').classList.add("d-none");
+                }else{
+                    document.getElementById('jugadorO').classList.remove("d-none");
+                    document.getElementById('jugadorX').classList.add("d-none");
+                }
+
+                if(jugada[3] == 'ganado'){
+                    Swal.fire('GANADOR!!!',`El jugador ${jugada[2]} ha ganado la partida`, 'success'); 
+                }
+                if(jugada[3] == 'empate'){
+                    Swal.fire('Empate!!!',`Ha habido un empate de los jugadores`, 'warning');
+                }
+            }else{
+                // alert(value);
+                Swal.fire(value);
+            }
+            
+        });
+
+
+        document.querySelector('#btnReiniciar').addEventListener('click',()=>{
+            console.log('Se solicito reiniciar el juego');
+            // socket.on('reiniciar');
+            socket.emit('reiniciar', nombreUsuario);
+        });
+    </script>
+    
+</body>
+</html>
